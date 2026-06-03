@@ -148,7 +148,7 @@ export function OnboardingScreen({
                 type="submit"
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition-all duration-150 cursor-pointer"
               >
-                Launch Verification Board
+                Generate Report
                 <ArrowRight className="size-4" />
               </button>
             </form>
