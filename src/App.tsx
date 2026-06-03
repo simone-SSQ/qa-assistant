@@ -4,6 +4,7 @@ import { CATEGORY_PRESETS, PresetIssue } from './constants/presets';
 import { ReportHeaderForm } from './components/ReportHeaderForm';
 import { IssueItem } from './components/IssueItem';
 import { ReportOutputView } from './components/ReportOutputView';
+import { OnboardingScreen } from './components/OnboardingScreen';
 import {
   Layers,
   FileCheck,
@@ -43,6 +44,7 @@ function createNewReportInstance(): QAReport {
 export default function App() {
   const [report, setReport] = useState<QAReport>(createNewReportInstance());
   const [savedReports, setSavedReports] = useState<QAReport[]>([]);
+  const [isOnboarding, setIsOnboarding] = useState(true);
   const [hasGemini, setHasGemini] = useState(false);
   const [checkingGemini, setCheckingGemini] = useState(true);
 
@@ -232,12 +234,35 @@ export default function App() {
   };
 
   const handleNewReport = () => {
+    setIsOnboarding(true);
+  };
+
+  const handleOnboardingNewReport = (name: string, figmaUrl: string, liveUrl: string) => {
     const next = createNewReportInstance();
+    next.componentName = name;
+    next.figmaUrl = figmaUrl;
+    next.liveUrl = liveUrl;
+    
     setReport(next);
-    const updatedList = [next, ...savedReports];
+    
+    // Check if we already have this element to avoid duplicates or replace the placeholder
+    let updatedList = [...savedReports];
+    // If we only had standard seeded report as a generic setup, let's keep it or replace
+    updatedList = [next, ...updatedList];
+    
     setSavedReports(updatedList);
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
-    showNotification('Created a new QA report');
+    setIsOnboarding(false);
+    showNotification(`Board launched: ${name}`);
+  };
+
+  const handleOnboardingResumeReport = (id: string) => {
+    const selected = savedReports.find((r) => r.id === id);
+    if (selected) {
+      setReport(selected);
+      setIsOnboarding(false);
+      showNotification(`Resumed board: ${selected.componentName}`);
+    }
   };
 
   const handleDeleteReport = (id: string) => {
@@ -364,8 +389,17 @@ export default function App() {
         </div>
       </nav>
 
-      {/* Primary Workspace container */}
-      <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {isOnboarding ? (
+        <OnboardingScreen
+          savedReports={savedReports}
+          onStartNewReport={handleOnboardingNewReport}
+          onResumeReport={handleOnboardingResumeReport}
+          hasGemini={hasGemini}
+        />
+      ) : (
+        <>
+          {/* Primary Workspace container */}
+          <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* Left COLUMN: Sidebar overview data (3-cols) */}
         <aside className="lg:col-span-3 bg-white border border-slate-200 rounded-xl p-5 flex flex-col space-y-6 shadow-sm">
@@ -811,6 +845,8 @@ export default function App() {
           Component Audit Report v1.0.5 • Local Persistent Logs Enabled
         </div>
       </footer>
-    </div>
+    </>
+  )}
+</div>
   );
 }
