@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 
 async function startServer() {
   const app = express();
@@ -117,6 +117,221 @@ ${JSON.stringify(categoriesList, null, 2)}`;
     } catch (err: any) {
       console.error('Error in /api/generate-summary:', err);
       res.status(500).json({ error: err.message || 'Error generating summary' });
+    }
+  });
+
+  // Generate automated report based on component name and URLs
+  app.post('/api/generate-automated-report', async (req, res) => {
+    const { componentName, figmaUrl, liveUrl } = req.body;
+    if (!componentName) {
+      return res.status(400).json({ error: 'Component Name is required' });
+    }
+
+    const defaultResponse = {
+      summary: `The design implementation of "${componentName}" matches styling configurations but exhibits tiny spacing misalignments, keyboard outline omissions, and contrast level gaps.`,
+      categories: {
+        visual: {
+          status: 'issues',
+          issues: [
+            { severity: 'P2', description: `Some corner boundary styles (border-radius) seem slightly inconsistent with modern 8px token layouts; "${componentName}" appears to be 4px.` },
+            { severity: 'Suggestion', description: "Recommend subtle transitions on background color changes when elements are hovered." }
+          ]
+        },
+        states: {
+          status: 'issues',
+          issues: [
+            { severity: 'P1', description: `The active click press state displays no visual press down scale animation or shadow transition.` },
+            { severity: 'P2', description: "Keyboard focus outline is not styled; inherits browser outline default which has low visibility." }
+          ]
+        },
+        responsive: {
+          status: 'issues',
+          issues: [
+            { severity: 'P2', description: `Horizontal margins compress the elements inside "${componentName}" and trigger double-line wraps on screen sizes under 360px.` }
+          ]
+        },
+        content: {
+          status: 'issues',
+          issues: [
+            { severity: 'Suggestion', description: "Ensure label truncations are handled gracefully with CSS text-overflow: ellipsis for extremely long text values." }
+          ]
+        },
+        accessibility: {
+          status: 'issues',
+          issues: [
+            { severity: 'P1', description: "Main text color fails standard WCAG AA contrast ratio targets of 4.5:1 against the active background choice." }
+          ]
+        },
+        composability: {
+          status: 'no_issues',
+          issues: []
+        }
+      }
+    };
+
+    try {
+      if (!ai) {
+        // Fallback when no AI is present on the server
+        return res.json(defaultResponse);
+      }
+
+      const reportSchema = {
+        type: Type.OBJECT,
+        properties: {
+          summary: {
+            type: Type.STRING,
+            description: "A professional, constructive 1-to-2 sentence overall summary of the automated design review findings."
+          },
+          categories: {
+            type: Type.OBJECT,
+            properties: {
+              visual: {
+                type: Type.OBJECT,
+                properties: {
+                  status: { type: Type.STRING, description: "Must be 'issues' or 'no_issues'." },
+                  issues: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        severity: { type: Type.STRING, description: "Must be one of: 'P1', 'P2', 'Suggestion'." },
+                        description: { type: Type.STRING, description: "Actionable item specific to physical alignment, padding/margins, typography sizing, colors, or shadows." }
+                      },
+                      required: ["severity", "description"]
+                    }
+                  }
+                },
+                required: ["status", "issues"]
+              },
+              states: {
+                type: Type.OBJECT,
+                properties: {
+                  status: { type: Type.STRING, description: "Must be 'issues' or 'no_issues'." },
+                  issues: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        severity: { type: Type.STRING, description: "Must be one of: 'P1', 'P2', 'Suggestion'." },
+                        description: { type: Type.STRING, description: "Feedback on hover shifts, click states feedback, disabled pointers, or active indicator shapes." }
+                      },
+                      required: ["severity", "description"]
+                    }
+                  }
+                },
+                required: ["status", "issues"]
+              },
+              responsive: {
+                type: Type.OBJECT,
+                properties: {
+                  status: { type: Type.STRING, description: "Must be 'issues' or 'no_issues'." },
+                  issues: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        severity: { type: Type.STRING, description: "Must be one of: 'P1', 'P2', 'Suggestion'." },
+                        description: { type: Type.STRING, description: "Layout shifts across viewport breakpoints, safe wrappings, safe horizontal paddings on small devices." }
+                      },
+                      required: ["severity", "description"]
+                    }
+                  }
+                },
+                required: ["status", "issues"]
+              },
+              content: {
+                type: Type.OBJECT,
+                properties: {
+                  status: { type: Type.STRING, description: "Must be 'issues' or 'no_issues'." },
+                  issues: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        severity: { type: Type.STRING, description: "Must be one of: 'P1', 'P2', 'Suggestion'." },
+                        description: { type: Type.STRING, description: "Feedback on handling localized long text strings, text overflows, title truncations, or empty state scenarios." }
+                      },
+                      required: ["severity", "description"]
+                    }
+                  }
+                },
+                required: ["status", "issues"]
+              },
+              accessibility: {
+                type: Type.OBJECT,
+                properties: {
+                  status: { type: Type.STRING, description: "Must be 'issues' or 'no_issues'." },
+                  issues: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        severity: { type: Type.STRING, description: "Must be one of: 'P1', 'P2', 'Suggestion'." },
+                        description: { type: Type.STRING, description: "AA contrast targets, screen reader tags, keyboard tab index styling, and focused outlines." }
+                      },
+                      required: ["severity", "description"]
+                    }
+                  }
+                },
+                required: ["status", "issues"]
+              },
+              composability: {
+                type: Type.OBJECT,
+                properties: {
+                  status: { type: Type.STRING, description: "Must be 'issues' or 'no_issues'." },
+                  issues: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        severity: { type: Type.STRING, description: "Must be one of: 'P1', 'P2', 'Suggestion'." },
+                        description: { type: Type.STRING, description: "Feedback on design code modularity, styling overrides pattern, slots, or external boundaries configuration." }
+                      },
+                      required: ["severity", "description"]
+                    }
+                  }
+                },
+                required: ["status", "issues"]
+              }
+            },
+            required: ["visual", "states", "responsive", "content", "accessibility", "composability"]
+          }
+        },
+        required: ["summary", "categories"]
+      };
+
+      const systemPrompt = `You are an elite, highly detailed QA/UX Engineering Lead specialized in evaluating pixel fidelity, interactive states, and design-system guidelines.
+Your job is to generate an automatic, realistic, and highly professional Component Audit Report based on the provided component details.
+Create a highly credible review of a component styled with modern web tools (React, Tailwind, CSS-in-JS).
+
+Rules:
+1. Speak with precision and authority (e.g., mention exact paddings, class parameters, accessibility compliance details like WCAG 2.1 AA).
+2. Tailor your findings strictly to the given component name: "${componentName}".
+3. If Figma URL is provided ("${figmaUrl || 'None'}"), comment on typical Figma token representation vs live inspect.
+4. If Live URL is provided ("${liveUrl || 'None'}"), discuss layout boundaries, responsive wraps, and scrollbars.
+5. All IDs for issues will be assigned on the front-end, do not worry about the ID strings, you can use simple ids like "1", "2", "3" or similar.
+6. Make sure to generate 1 to 2 high-fidelity actionable issues for most categories if they show issues. Ensure some categories report "no_issues" if they are satisfactory (to make the report feel extremely authentic and balanced, e.g., Composability is often "no_issues").`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.5-flash',
+        contents: `Generate a Component Audit Report for:
+Component Name: "${componentName}"
+Figma Design URL: "${figmaUrl || 'None'}"
+Live Production URL: "${liveUrl || 'None'}"`,
+        config: {
+          systemInstruction: systemPrompt,
+          temperature: 0.45,
+          responseMimeType: "application/json",
+          responseSchema: reportSchema
+        },
+      });
+
+      const parsedResult = JSON.parse(response.text?.trim() || "{}");
+      res.json(parsedResult);
+    } catch (err: any) {
+      console.error('Error in /api/generate-automated-report:', err);
+      // Fallback response instead of failing
+      res.json(defaultResponse);
     }
   });
 

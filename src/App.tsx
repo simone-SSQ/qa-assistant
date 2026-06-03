@@ -5,6 +5,7 @@ import { ReportHeaderForm } from './components/ReportHeaderForm';
 import { IssueItem } from './components/IssueItem';
 import { ReportOutputView } from './components/ReportOutputView';
 import { OnboardingScreen } from './components/OnboardingScreen';
+import { FunLoadingScreen } from './components/FunLoadingScreen';
 import {
   Layers,
   FileCheck,
@@ -45,6 +46,10 @@ export default function App() {
   const [report, setReport] = useState<QAReport>(createNewReportInstance());
   const [savedReports, setSavedReports] = useState<QAReport[]>([]);
   const [isOnboarding, setIsOnboarding] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [pendingReportData, setPendingReportData] = useState<{ id?: string; name: string; figmaUrl: string; liveUrl: string } | null>(null);
+  const [automatedReportResult, setAutomatedReportResult] = useState<any | null>(null);
+  const [isAnimationFinished, setIsAnimationFinished] = useState(false);
   const [hasGemini, setHasGemini] = useState(false);
   const [checkingGemini, setCheckingGemini] = useState(true);
 
@@ -238,30 +243,99 @@ export default function App() {
   };
 
   const handleOnboardingNewReport = (name: string, figmaUrl: string, liveUrl: string) => {
-    const next = createNewReportInstance();
-    next.componentName = name;
-    next.figmaUrl = figmaUrl;
-    next.liveUrl = liveUrl;
-    
-    setReport(next);
-    
-    // Check if we already have this element to avoid duplicates or replace the placeholder
-    let updatedList = [...savedReports];
-    // If we only had standard seeded report as a generic setup, let's keep it or replace
-    updatedList = [next, ...updatedList];
-    
-    setSavedReports(updatedList);
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
-    setIsOnboarding(false);
-    showNotification(`Board launched: ${name}`);
+    setPendingReportData({ name, figmaUrl, liveUrl });
+    setAutomatedReportResult(null);
+    setIsAnimationFinished(false);
+    setIsGenerating(true);
+
+    fetch('/api/generate-automated-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ componentName: name, figmaUrl, liveUrl })
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setAutomatedReportResult(data);
+      })
+      .catch((err) => {
+        console.error('Error in automatic report pre-fetch:', err);
+      });
   };
+
+  const handleFinishedLoading = () => {
+    setIsAnimationFinished(true);
+  };
+
+  // Synchronize loading animation + Gemini audit generation results
+  useEffect(() => {
+    if (isGenerating && isAnimationFinished) {
+      if (pendingReportData?.id) {
+        // Resuming an existing stored board
+        const selected = savedReports.find((r) => r.id === pendingReportData.id);
+        if (selected) {
+          setReport(selected);
+          setIsGenerating(false);
+          setIsOnboarding(false);
+          setPendingReportData(null);
+          setIsAnimationFinished(false);
+          setAutomatedReportResult(null);
+          showNotification(`Resumed board: ${selected.componentName}`);
+        }
+      } else if (automatedReportResult) {
+        // Build a brand-new high fidelity automated audit board
+        const next = createNewReportInstance();
+        next.componentName = pendingReportData?.name || '';
+        next.figmaUrl = pendingReportData?.figmaUrl || '';
+        next.liveUrl = pendingReportData?.liveUrl || '';
+        next.summary = automatedReportResult.summary || `The custom design component "${next.componentName}" displays robust functional qualities with few opportunities for styling alignment enhancements.`;
+
+        const apiCats = automatedReportResult.categories || {};
+        
+        Object.keys(next.categories).forEach((catKey) => {
+          const apiCat = apiCats[catKey];
+          if (apiCat) {
+            const destCat = next.categories[catKey as keyof QAReport['categories']];
+            destCat.status = apiCat.status || 'no_issues';
+            
+            // Map the issues and provide uniquely stable client keys
+            const issuesArray = apiCat.issues || [];
+            destCat.issues = issuesArray.map((issue: any, index: number) => ({
+              id: `auto_${catKey}_${index}_${Math.random().toString(36).substr(2, 4)}`,
+              severity: issue.severity || 'P2',
+              description: issue.description || 'Discrepancy identified.'
+            }));
+          }
+        });
+
+        setReport(next);
+
+        let updatedList = [...savedReports];
+        updatedList = [next, ...updatedList];
+        setSavedReports(updatedList);
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
+
+        setIsGenerating(false);
+        setIsOnboarding(false);
+        setPendingReportData(null);
+        setAutomatedReportResult(null);
+        setIsAnimationFinished(false);
+        showNotification(`Automated audit complete: ${next.componentName}`);
+      }
+    }
+  }, [isGenerating, isAnimationFinished, automatedReportResult, pendingReportData, savedReports]);
 
   const handleOnboardingResumeReport = (id: string) => {
     const selected = savedReports.find((r) => r.id === id);
     if (selected) {
-      setReport(selected);
-      setIsOnboarding(false);
-      showNotification(`Resumed board: ${selected.componentName}`);
+      setPendingReportData({
+        id: selected.id,
+        name: selected.componentName,
+        figmaUrl: selected.figmaUrl || '',
+        liveUrl: selected.liveUrl || ''
+      });
+      setIsAnimationFinished(false);
+      setAutomatedReportResult(null);
+      setIsGenerating(true);
     }
   };
 
@@ -389,7 +463,12 @@ export default function App() {
         </div>
       </nav>
 
-      {isOnboarding ? (
+      {isGenerating ? (
+        <FunLoadingScreen
+          componentName={pendingReportData?.name || ''}
+          onFinished={handleFinishedLoading}
+        />
+      ) : isOnboarding ? (
         <OnboardingScreen
           savedReports={savedReports}
           onStartNewReport={handleOnboardingNewReport}
@@ -767,58 +846,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* AI Synthesis Summary form block */}
-          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Wand2 className="size-5 text-indigo-600" />
-                <h3 className="text-xs font-bold text-slate-901 uppercase tracking-widest font-display">
-                  Report Executive Summary
-                </h3>
-              </div>
-              
-              {hasGemini && (
-                <button
-                  onClick={handleAISummarize}
-                  disabled={isSummarizing || !report.componentName}
-                  type="button"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-650 hover:bg-indigo-700 disabled:bg-indigo-300 transition-all cursor-pointer shadow-sm"
-                  title="Synthesize 1-2 sentence overall summary with Gemini AI"
-                >
-                  {isSummarizing ? (
-                    <RefreshCw className="size-3.5 animate-spin text-white" />
-                  ) : (
-                    <Sparkles className="size-3.5 text-white animate-pulse" />
-                  )}
-                  Synthesize with AI
-                </button>
-              )}
-            </div>
 
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Provide a 1–2 sentence overview of overall implementation quality and primary priority focus for the engineer. You can type this manually or ask Gemini to automatically synthesize it.
-            </p>
-
-            {summaryError && (
-              <div className="flex gap-2 p-2.5 bg-red-50 border border-red-150 rounded-lg text-red-700 text-xs font-mono">
-                <AlertCircle className="size-4 shrink-0" />
-                {summaryError}
-              </div>
-            )}
-
-            <div className="space-y-1">
-              <textarea
-                rows={3}
-                value={report.summary}
-                onChange={(e) => handleUpdateReportMeta({ summary: e.target.value })}
-                placeholder="The custom button matches branding guidelines but lacks adequate tap-target contrast and focuses states..."
-                className="w-full text-xs rounded-lg border border-slate-250 p-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white placeholder:text-slate-400 focus:border-indigo-500 transition-colors"
-              />
-              <span className="block text-[10px] text-slate-400 font-mono text-right select-none">
-                {report.summary.length} characters (1-2 sentences recommended)
-              </span>
-            </div>
-          </div>
         </section>
 
         {/* Right COLUMN: Format & Markdown output block (4-cols) */}

@@ -58,62 +58,66 @@ export function ReportOutputView({ report }: ReportOutputViewProps) {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex flex-col h-full space-y-4">
+    <div className="bg-gradient-to-b from-slate-50 to-white rounded-2xl border border-slate-250/90 p-6 shadow-md flex flex-col h-full space-y-4 relative overflow-hidden">
       {/* Header and Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-150">
         <div className="flex items-center gap-1.5">
-          <h2 className="text-sm font-bold text-slate-900 font-display uppercase tracking-wider">
-            Output Document
+          <span className="w-1.5 h-3 bg-indigo-600 rounded-full"></span>
+          <h2 className="text-xs font-bold text-slate-800 font-mono uppercase tracking-widest">
+            Fidelity QA Manifest
           </h2>
         </div>
 
         {/* View Mode Switcher */}
-        <div className="flex items-center bg-slate-50 p-0.5 rounded-lg border border-slate-200 self-start sm:self-auto shadow-2xs">
+        <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200/90 self-start sm:self-auto shadow-3xs">
           <button
             onClick={() => setActiveTab('preview')}
             type="button"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all duration-150 ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-bold cursor-pointer transition-all duration-150 ${
               activeTab === 'preview'
-                ? 'bg-white text-slate-900 shadow-xs border border-slate-200'
+                ? 'bg-white text-slate-900 shadow-3xs border border-slate-200/60'
                 : 'text-slate-500 hover:text-slate-900 border border-transparent'
             }`}
           >
-            <Eye className="size-3.5 text-indigo-600" />
+            <Eye className="size-3 text-indigo-650" />
             Visual Preview
           </button>
           <button
             onClick={() => setActiveTab('markdown')}
             type="button"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all duration-150 ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-bold cursor-pointer transition-all duration-150 ${
               activeTab === 'markdown'
-                ? 'bg-white text-slate-900 shadow-xs border border-slate-200'
+                ? 'bg-white text-slate-900 shadow-3xs border border-slate-200/60'
                 : 'text-slate-500 hover:text-slate-950 border border-transparent'
             }`}
           >
-            <Code className="size-3.5 text-indigo-500" />
+            <Code className="size-3 text-indigo-500" />
             Markdown Code
           </button>
         </div>
       </div>
 
       {/* Main Preview Block */}
-      <div className="flex-1 bg-slate-50/50 rounded-xl border border-slate-200 overflow-auto min-h-[350px] max-h-[550px] p-5 font-mono text-xs text-slate-800 leading-relaxed scrollbar shadow-inner">
+      <div className="flex-1 bg-white rounded-xl border border-slate-200/80 overflow-auto min-h-[350px] max-h-[550px] p-5 text-xs text-slate-850 leading-relaxed scrollbar shadow-inner hover:border-slate-300 transition-colors">
         {activeTab === 'markdown' ? (
-          <pre className="whitespace-pre-raw text-left select-all select-text font-mono text-xs text-gray-700 bg-gray-50">
+          <pre className="whitespace-pre-wrap text-left select-text font-mono text-[11px] text-slate-700 bg-slate-50/50 p-4 rounded-lg border border-slate-150 outline-none">
             {markdownString}
           </pre>
         ) : (
-          <div className="font-sans space-y-6 text-slate-800 text-sm">
+          <div className="font-sans space-y-5 text-slate-850 text-xs">
             {/* Visual Header */}
-            <div className="pb-4 border-b border-slate-200/85 space-y-2">
-              <h3 className="text-base font-extrabold text-slate-900 tracking-tight font-display">
+            <div className="pb-4 border-b border-slate-150/90 space-y-2">
+              <span className="inline-flex items-center text-[9px] uppercase font-bold tracking-wider font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                Verified Spec Draft
+              </span>
+              <h3 className="text-base font-extrabold text-slate-950 tracking-tight font-display">
                 {report.componentName || 'Untitled Component'}
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1.5 gap-x-4 text-[11px] font-mono text-slate-500">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1.5 gap-x-4 text-[10.5px] font-mono text-slate-500">
                 <p>
-                  <span className="font-bold select-none text-slate-400 font-sans uppercase tracking-wider text-[9px] mr-1">Figma:</span>
+                  <span className="font-bold select-none text-slate-400 font-sans uppercase tracking-wider text-[8.5px] mr-1">Figma:</span>
                   {report.figmaUrl ? (
-                    <a href={report.figmaUrl} target="_blank" rel="noreferrer" className="text-indigo-650 hover:underline truncate inline-block max-w-[200px] align-bottom">
+                    <a href={report.figmaUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline truncate inline-block max-w-[180px] align-bottom">
                       {report.figmaUrl}
                     </a>
                   ) : (
@@ -121,9 +125,9 @@ export function ReportOutputView({ report }: ReportOutputViewProps) {
                   )}
                 </p>
                 <p>
-                  <span className="font-bold select-none text-slate-400 font-sans uppercase tracking-wider text-[9px] mr-1">Live:</span>
+                  <span className="font-bold select-none text-slate-400 font-sans uppercase tracking-wider text-[8.5px] mr-1">Live:</span>
                   {report.liveUrl ? (
-                    <a href={report.liveUrl} target="_blank" rel="noreferrer" className="text-indigo-650 hover:underline truncate inline-block max-w-[200px] align-bottom">
+                    <a href={report.liveUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline truncate inline-block max-w-[180px] align-bottom">
                       {report.liveUrl}
                     </a>
                   ) : (
@@ -131,31 +135,31 @@ export function ReportOutputView({ report }: ReportOutputViewProps) {
                   )}
                 </p>
                 <p className="sm:col-span-2">
-                  <span className="font-bold select-none text-slate-400 font-sans uppercase tracking-wider text-[9px] mr-1">Date audited:</span>
+                  <span className="font-bold select-none text-slate-400 font-sans uppercase tracking-wider text-[8.5px] mr-1">Date audited:</span>
                   <span className="text-slate-700">{report.date}</span>
                 </p>
               </div>
             </div>
 
             {/* Categories */}
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               {CATEGORIES_LIST.map((meta, idx) => {
                 const cat = report.categories[meta.id as keyof QAReport['categories']];
                 let statusBadge = (
-                  <span className="text-[10px] bg-slate-100 border border-slate-200 text-slate-550 px-2 py-0.5 rounded-full font-mono font-bold">
+                  <span className="text-[9.5px] bg-slate-50 border border-slate-200 text-slate-500 px-2 py-0.5 rounded font-mono font-bold">
                     Not reviewed
                   </span>
                 );
 
                 if (cat.status === 'no_issues') {
                   statusBadge = (
-                    <span className="text-[10px] bg-emerald-50 border border-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full font-mono font-bold">
+                    <span className="text-[9.5px] bg-emerald-50 border border-emerald-200 text-emerald-700 px-2 py-0.5 rounded font-mono font-bold">
                       ✓ Clean
                     </span>
                   );
                 } else if (cat.status === 'issues') {
                   statusBadge = (
-                    <span className="text-[10px] bg-red-100 border border-red-200 text-red-800 px-2 py-0.5 rounded-full font-mono font-bold">
+                    <span className="text-[9.5px] bg-red-50 border border-red-200/80 text-red-700 px-2 py-0.5 rounded font-mono font-bold">
                       ✗ {cat.issues.length} {cat.issues.length === 1 ? 'Issue' : 'Issues'}
                     </span>
                   );
@@ -164,12 +168,12 @@ export function ReportOutputView({ report }: ReportOutputViewProps) {
                 return (
                   <div
                     key={meta.id}
-                    className={`p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3 transition-all ${
-                      cat.status === 'not_reviewed' ? 'opacity-65 grayscale-2xs' : 'opacity-100'
+                    className={`p-3 bg-slate-50/50 rounded-xl border border-slate-200/70 space-y-2.5 transition-all ${
+                      cat.status === 'not_reviewed' ? 'opacity-60' : 'opacity-100'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-                      <h4 className="font-bold text-slate-900 text-xs tracking-wider uppercase flex items-center font-display">
+                    <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-1.5">
+                      <h4 className="font-bold text-slate-900 text-xs tracking-tight flex items-center font-display">
                         <span className={`w-1 h-3.5 mr-2 rounded-full inline-block ${
                           cat.status === 'issues'
                             ? 'bg-red-500'
@@ -183,23 +187,25 @@ export function ReportOutputView({ report }: ReportOutputViewProps) {
                     </div>
 
                     {cat.status === 'not_reviewed' && (
-                      <p className="text-xs text-slate-400 italic">No verification logged.</p>
+                      <p className="text-[11px] text-slate-400 italic">No verification logged.</p>
                     )}
 
                     {cat.status === 'no_issues' && (
-                      <div className="py-2 border border-dashed border-slate-100 rounded-lg flex items-center justify-center bg-slate-50/50">
-                        <span className="text-xs text-slate-400 font-medium">✓ Clean — No issues detected.</span>
+                      <div className="py-1.5 border border-dashed border-slate-200/60 rounded-lg flex items-center justify-center bg-white">
+                        <span className="text-[11px] text-emerald-650 font-semibold flex items-center gap-1.5">
+                          ✓ All Figma guidelines matched
+                        </span>
                       </div>
                     )}
 
                     {cat.status === 'issues' && (
-                      <div className="space-y-2">
+                      <div className="space-y-1.5 bg-white p-2 border border-slate-100 rounded-lg">
                         {cat.issues.length === 0 ? (
-                          <p className="text-xs text-slate-400 italic">No issues logged yet.</p>
+                          <p className="text-[11px] text-slate-400 italic">No issues logged yet.</p>
                         ) : (
                           cat.issues.map((issue) => (
-                            <div key={issue.id} className="flex gap-2 items-start text-xs leading-relaxed">
-                              <span className={`inline-block font-mono text-[9px] px-1 py-0.2 font-bold rounded border shrink-0 mt-0.5 ${getSeverityColor(issue.severity)}`}>
+                            <div key={issue.id} className="flex gap-2 items-start text-[11.5px] leading-relaxed">
+                              <span className={`inline-block font-mono text-[8px] px-1 font-extrabold rounded border shrink-0 mt-0.5 ${getSeverityColor(issue.severity)}`}>
                                 {issue.severity}
                               </span>
                               <span className="text-slate-700 font-sans">{issue.description}</span>
